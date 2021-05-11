@@ -69,6 +69,9 @@ class FileSource(Source):
             if not isinstance(s, FileSource):
                 return None
         readers = [s._reader for s in others]
+        for r in readers:
+            if type(r) is type(self._reader):  # noqa: E721
+                return None
         return self._reader._multi_merge(readers)
 
     def _attributes(self, names):

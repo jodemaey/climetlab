@@ -321,6 +321,8 @@ class NetCDFReader(Reader):
         return xr.open_dataset(self.path)
 
     def _multi_merge(self, others):
+        t = type(self)
+        assert all(type(o) is t for o in others)
         return MultiNetcdf([self.path] + [o.path for o in others])
 
 
