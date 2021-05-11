@@ -68,6 +68,7 @@ def test_file_source_cds_grib():
     assert len(s) == 2
 
 
+# TODO : re-enable test_file_source_cds_netcdf
 # def test_file_source_cds_netcdf():
 #
 #    if not os.path.exists(os.path.expanduser("~/.cdsapirc")):
