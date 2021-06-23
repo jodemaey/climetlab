@@ -14,11 +14,12 @@ from . import Source
 
 
 class MultiSource(Source):
-    def __init__(self, *sources, merger=None):
+    def __init__(self, *sources, merger=None, file_filter=None):
         if len(sources) == 1 and isinstance(sources[0], list):
             sources = sources[0]
         self.merger = merger
         self.sources = sources
+        self.file_filter = file_filter
         self._lengths = [None] * len(sources)
 
     def mutate(self):

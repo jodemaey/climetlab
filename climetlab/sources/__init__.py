@@ -41,6 +41,9 @@ class Source(Base):
         # Give a chance to `multi` to change source
         return self
 
+    def fallback_reader(self, path, magic):
+        return None
+
     def cache_file(self, create, args, extension=".cache"):
         owner = self.name
         if self.dataset:

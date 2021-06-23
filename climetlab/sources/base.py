@@ -27,6 +27,10 @@ class FileSource(Source):
     _reader_ = None
     path = None
 
+    def __init__(self, *args, file_filter=None, **kwargs):
+        self.file_filter = file_filter
+        super().__init__(*args, **kwargs)
+
     @property
     def _reader(self):
         if self._reader_ is None:

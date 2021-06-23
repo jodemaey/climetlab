@@ -14,14 +14,16 @@ from . import reader as find_reader
 
 
 class DirectoryReader(Reader):
-    def __init__(self, source, path):
+    def __init__(self, source, path, exclude=lambda x: False):
         super().__init__(source, path)
 
         self._content = []
 
         for root, _, files in os.walk(path):
             for file in files:
-                self._content.append(os.path.join(root, file))
+                full = os.path.join(root, file)
+                if not exclude(full):
+                    self._content.append(full)
 
         assert self._content, path
 
