@@ -225,6 +225,9 @@ def test_numbers():
                 settings.get("maximum-cache-size") == 1024 * 1024 * 1024 * 1024 * 1024
             )
 
+            settings.set("minimum-cache-size", "1T")
+            assert settings.get("mminimum-cache-size") == 1024 * 1024 * 1024 * 1024
+
             settings.set("maximum-cache-size", None)
             assert settings.get("maximum-cache-size") is None
 

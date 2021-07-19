@@ -437,16 +437,20 @@ class Cache(threading.Thread):
         self._delete_entry(path)
 
     def _check_cache_size(self):
+        size = self._cache_size()
 
         # Check absolute limit
-        size = self._cache_size()
+        minimum = SETTINGS.get("minimum-cache-size")
+        if minimum is not None and size < minimum:
+            return
+
+        # Check absolute limit
         maximum = SETTINGS.get("maximum-cache-size")
         if maximum is not None and size > maximum:
             self._housekeeping()
             self._decache(size - maximum)
 
         # Check relative limit
-        size = self._cache_size()
         usage = SETTINGS.get("maximum-cache-disk-usage")
         cache_directory = SETTINGS.get("cache-directory")
         df = psutil.disk_usage(cache_directory)

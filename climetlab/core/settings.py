@@ -87,9 +87,17 @@ SETTINGS_AND_HELP = {
         getter="_as_bytes",
         none_ok=True,
     ),
+    "minimum-cache-size": _(
+        None,
+        """Minimum disk space reserved for CliMetLab cache (ex: 100G or 2T). No cache file will be deleted
+        as long as the CliMetLab cache does not reach this value.""",
+        getter="_as_bytes",
+        none_ok=True,
+    ),
     "maximum-cache-disk-usage": _(
         "90%",
-        """Disk usage threshold after which CliMetLab expires older cached entries (% of the full disk capacity).
+        """Disk usage threshold after which CliMetLab expires older cached entries.
+        As a percentage of the full disk capacity counting all files (not only CliMetLab cache).
         See :ref:`caching` for more information.""",
         getter="_as_percent",
     ),

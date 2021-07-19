@@ -113,6 +113,29 @@ def test_cache_4():
             load_source("dummy-source", "zeros", size=100 * 1024 * 1024, n=n)
 
 
+def test_cache_5():
+
+    with temp_directory() as tmpdir:
+        with settings.temporary():
+            settings.set("cache-directory", tmpdir)
+            settings.set("maximum-cache-size", "3MB")
+            settings.set("minimum-cache-size", "6MB")
+            settings.set("number-of-download-threads", 5)
+
+            assert cache_size() == 0
+
+            load_source(
+                "url-pattern",
+                "https://storage.ecmwf.europeanweather.cloud/climetlab/test-data/0.5/cache.{n}.{size}mb",
+                {
+                    "size": 1,
+                    "n": [0, 1, 2, 3, 4],
+                },
+            )
+
+            assert cache_size() == 5 * 1024 * 1024, cache_size()
+
+
 if __name__ == "__main__":
     from climetlab.testing import main
 
