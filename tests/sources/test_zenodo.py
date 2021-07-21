@@ -58,14 +58,18 @@ def test_zenodo_3():
 
 def test_zenodo_read_nc():
     def file_filter(path):
-        return path.endswith("analysis_2t_2013-01-02.nc")
+        if path.endswith("analysis_2t_2013-01-02.nc"):
+            return True
+        if path.endswith("analysis_2t_2013-01-03.nc"):
+            return True
+        return False
 
     ds = cml.load_source(
         "zenodo",
         record_id="4707154",
         file_key="europa_grid_data.zip",
         filter=file_filter,
-        merger="concat(concat_dim=tt)",
+        merger="concat(concat_dim=time)",
     )
     ds = ds.to_xarray()
     assert "t2m" in list(ds.keys())
