@@ -41,10 +41,6 @@ NO_CDS = not os.path.exists(os.path.expanduser("~/.cdsapirc"))
 IN_GITHUB = os.environ.get("GITHUB_WORKFLOW") is not None
 
 
-def MISSING(*modules):
-    return not modules_installed(*modules)
-
-
 UNSAFE_SAMPLES_URL = "https://github.com/jwilk/traversal-archives/releases/download/0"
 
 

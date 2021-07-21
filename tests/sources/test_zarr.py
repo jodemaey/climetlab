@@ -13,14 +13,14 @@
 import pytest
 
 from climetlab import load_source
-from climetlab.testing import MISSING
 
 NOT_S3_URL = "https://get.ecmwf.int/test-data/climetlab/fixtures"
 S3_URL = "https://storage.ecmwf.europeanweather.cloud/climetlab/test-data/0.5/fixtures"
 S3_URL2 = "s3://storage.ecmwf.europeanweather.cloud/climetlab/test-data/0.5/fixtures"
 
 
-@pytest.mark.skipif(MISSING("zarr", "s3fs"), reason="Zarr or S3FS not installed")
+@pytest.importorskip("zarr")
+@pytest.importorskip("s3fs")
 def test_zarr_source_1():
     source = load_source(
         "zarr-s3",
@@ -30,7 +30,8 @@ def test_zarr_source_1():
     assert len(ds.forecast_time) == 1
 
 
-@pytest.mark.skipif(MISSING("zarr", "s3fs"), reason="Zarr or S3FS not installed")
+@pytest.importorskip("zarr")
+@pytest.importorskip("s3fs")
 def test_zarr_source_2():
     import datetime
 
@@ -56,7 +57,8 @@ def test_zarr_source_2():
     assert dates[1] == datetime.datetime(2020, 1, 9)
 
 
-@pytest.mark.skipif(MISSING("zarr", "s3fs"), reason="Zarr or S3FS not installed")
+@pytest.importorskip("zarr")
+@pytest.importorskip("s3fs")
 def test_zarr_source_3():
     import datetime
 
@@ -85,21 +87,24 @@ def test_zarr_source_3():
     assert dates[3] == datetime.datetime(2001, 1, 9)
 
 
-@pytest.mark.skipif(MISSING("zarr", "s3fs"), reason="Zarr or S3FS not installed")
+@pytest.importorskip("zarr")
+@pytest.importorskip("s3fs")
 def test_zarr_source_4():
     source = load_source("zarr", f"{S3_URL}/zarr/mini-rt-20200102.zarr")
     ds = source.to_xarray()
     assert len(ds.forecast_time) == 1
 
 
-@pytest.mark.skipif(MISSING("zarr", "s3fs"), reason="Zarr or S3FS not installed")
+@pytest.importorskip("zarr")
+@pytest.importorskip("s3fs")
 def test_zarr_source_5():
     source = load_source("zarr", f"{S3_URL2}/zarr/mini-rt-20200102.zarr")
     ds = source.to_xarray()
     assert len(ds.forecast_time) == 1
 
 
-@pytest.mark.skipif(MISSING("zarr"), reason="Zarr not installed")
+@pytest.importorskip("zarr")
+@pytest.importorskip("s3fs")
 def test_zarr_from_directory():
     s = load_source(
         "dummy-source",
@@ -109,7 +114,8 @@ def test_zarr_from_directory():
     assert "lat" in ds.dims
 
 
-@pytest.mark.skipif(MISSING("zarr"), reason="Zarr not installed")
+@pytest.importorskip("zarr")
+@pytest.importorskip("s3fs")
 def test_zarr_from_zip_file():
     s = load_source(
         "dummy-source",
@@ -119,7 +125,8 @@ def test_zarr_from_zip_file():
     assert "lat" in ds.dims
 
 
-@pytest.mark.skipif(MISSING("zarr", "s3fs"), reason="Zarr or S3FS not installed")
+@pytest.importorskip("zarr")
+@pytest.importorskip("s3fs")
 def test_https_does_not_support_zarr():
     # If the http(s) server is not a s3 server,
     # it does not work
