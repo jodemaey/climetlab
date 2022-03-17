@@ -1,7 +1,7 @@
-.. _normalize:
+.. _availability:
 
-Availability
-============
+Availability decorator
+======================
 
 .. todo::
 
@@ -34,24 +34,6 @@ Example:
 
 
 
-The following table lists the available constructors:
-
-.. list-table::
-   :widths: 10 80 10
-   :header-rows: 1
-
-   * - Availability
-     - Trigger
-     - Example
-   * - :ref:`list`
-     - tuple
-     - ``option=("a", "b")``
-   * - :ref:`date`
-     - list
-     - ``option=date-list...["a", "b"]``
-   * - :ref:`date`
-     - TODO
-     - TODO
 
 Usage
 -----

@@ -13,9 +13,12 @@ import logging
 import os
 import sys
 import traceback
+from importlib import import_module
 
+import entrypoints
 from termcolor import colored
 
+from .benchmark import BenchmarkCmd
 from .cache import CacheCmd
 from .check import CheckCmd
 from .grib import GribCmd
@@ -36,12 +39,23 @@ except ImportError:  # Not availabe on win32
             pass
 
 
+def get_plugins():
+    plugins = []
+    for e in entrypoints.get_group_all("climetlab.scripts"):
+        module = import_module(e.module_name)
+        klass = getattr(module, e.object_name)
+        plugins.append(klass)
+    return plugins
+
+
 class CliMetLabApp(
     cmd.Cmd,
     SettingsCmd,
     CacheCmd,
     CheckCmd,
     GribCmd,
+    BenchmarkCmd,
+    *get_plugins(),
 ):
     # intro = 'Welcome to climetlab. Type ? to list commands.\n'
     prompt = colored("(climetlab) ", "yellow")

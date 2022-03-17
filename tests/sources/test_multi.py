@@ -142,13 +142,15 @@ def test_download_zip_2():
 #     # assert len(ds) == 1
 
 
-def xtest_multi_grib():
+def test_multi_grib():
     ds = load_source(
         "multi",
         load_source("dummy-source", kind="grib", date=20000101),
         load_source("dummy-source", kind="grib", date=20000102),
     )
     assert len(ds) == 2
+    ds.to_xarray()
+    ds.statistics()
 
 
 def test_multi_grib_mixed():

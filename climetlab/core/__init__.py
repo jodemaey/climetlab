@@ -6,6 +6,9 @@
 # nor does it submit to any jurisdiction.
 #
 
+import logging
+
+LOG = logging.getLogger(__name__)
 
 PRIVATE_ATTRIBUTES = {"observer": lambda: None}
 
@@ -50,6 +53,10 @@ class Base(metaclass=MetaBase):
     def mutate(self):
         return self
 
+    @classmethod
+    def merge(cls, *args, **kwargs):
+        return None
+
     # Used when plotting
     def plot_map(self, backend):
         self._not_implemented()
@@ -75,6 +82,10 @@ class Base(metaclass=MetaBase):
         self._not_implemented()
 
     def to_bounding_box(self):
+        self._not_implemented()
+
+    # For machine learning
+    def statistics(self):
         self._not_implemented()
 
     #

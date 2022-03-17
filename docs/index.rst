@@ -27,7 +27,6 @@ or PyTorch_. See :ref:`overview` for more information.
 Documentation
 -------------
 
-**Getting Started**
 
 * :doc:`overview`
 * :doc:`installing`
@@ -37,7 +36,6 @@ Documentation
 .. toctree::
    :maxdepth: 1
    :hidden:
-   :caption: Getting Started
 
    overview
    installing
@@ -46,10 +44,10 @@ Documentation
 
 **User Guide (TODO)**
 
-* :doc:`guide/overview`
 * :doc:`guide/howtos`
 * :doc:`guide/datasets`
 * :doc:`guide/sources`
+* :doc:`guide/data_handling`
 * :doc:`guide/mltools`
 * :doc:`guide/plotting`
 * :doc:`guide/caching`
@@ -62,10 +60,10 @@ Documentation
    :hidden:
    :caption: User Guide
 
-   guide/overview
    guide/howtos
    guide/datasets
    guide/sources
+   guide/data_handling
    guide/mltools
    guide/plotting
    guide/caching
@@ -73,40 +71,35 @@ Documentation
    guide/pluginlist
    guide/cmdline
 
-**Contributor Guide**
+**Plugin Developer Guide**
 
 * :doc:`contributing/overview`
 * :doc:`contributing/datasets`
 * :doc:`contributing/sources`
 * :doc:`contributing/normalize`
 * :doc:`contributing/availability`
-* :doc:`contributing/readers`
+* :doc:`contributing/grib`
 * :doc:`contributing/plotting`
-* :doc:`contributing/todolist`
 
 .. toctree::
    :maxdepth: 1
    :hidden:
-   :caption: Contributor Guide
+   :caption: Plugin Developer Guide
 
    contributing/overview
    contributing/datasets
    contributing/sources
    contributing/normalize
    contributing/availability
-   contributing/readers
+   contributing/grib
    contributing/plotting
-   contributing/todolist
 
 
-
-**Developer Guide**
+**CliMetLab Developer Guide**
 
 * :doc:`developer/overview`
+* :doc:`developer/todolist`
 * :doc:`developer/architecture`
-* :doc:`developer/datasets`
-* :doc:`developer/sources`
-* :doc:`developer/api`
 * :doc:`developer/plotting`
 * :doc:`developer/gallery`
 * :doc:`developer/plugins`
@@ -114,27 +107,14 @@ Documentation
 .. toctree::
    :maxdepth: 1
    :hidden:
-   :caption: Developer Guide
+   :caption: CliMetLab Developer Guide
 
    developer/overview
+   developer/todolist
    developer/architecture
-   developer/datasets
-   developer/sources
-   developer/api
    developer/plotting
    developer/gallery
    developer/plugins
-
-**Reference**
-
-* :doc:`developer/api`
-
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-   :caption: Reference
-
-   developer/api
 
 
 License

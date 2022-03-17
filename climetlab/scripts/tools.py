@@ -37,6 +37,8 @@ def parse_args(epilog="", **kwargs):
             else:
                 p.add_argument(f"--{k}", **v)
 
+        func._argparser = p
+
         @wraps(func)
         def wrapped(self, args):
             args = p.parse_args(shlex.split(args))
@@ -45,6 +47,11 @@ def parse_args(epilog="", **kwargs):
         return wrapped
 
     return wrapper
+
+
+def experimental(func):
+    func._climetlab_experimental = True
+    return func
 
 
 def print_table(rows, colours=["blue"]):

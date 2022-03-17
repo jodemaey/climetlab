@@ -6,8 +6,13 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 #
+import logging
 
-AREAS = {
+from climetlab.core.data import get_data_entry
+
+LOG = logging.getLogger(__name__)
+
+areas = {
     "austria": (55.5, 6.0, 40.0, 21.5),
     "azores": (46.0, -35.0, 30.5, -19.5),
     "balearic islands": (47.5, -4.5, 32.0, 11.0),
@@ -38,7 +43,7 @@ AREAS = {
     "north macedonia": (49.5, 14.0, 34.0, 29.5),
     "norway": (73.0, 4.5, 57.5, 20.0),
     "portugal": (47.5, -15.0, 32.0, 0.5),
-    "republic of serbia": (52.0, 13.5, 36.5, 29.0),
+    "serbia": (52.0, 13.5, 36.5, 29.0),
     "romania": (54.0, 17.5, 38.5, 33.0),
     "sardinia": (48.0, 1.5, 32.5, 17.0),
     "sicily": (45.5, 6.5, 30.0, 22.0),
@@ -50,12 +55,38 @@ AREAS = {
     "turkey": (47.0, 25.5, 31.5, 41.0),
     "united kingdom": (63.5, -10.0, 48.0, 5.5),
 }
+areas.update(
+    {
+        "uk": areas["united kingdom"],
+        "republic of serbia": areas["serbia"],
+    }
+)
 
-AREAS["uk"] = AREAS["united kingdom"]
-AREAS["serbia"] = AREAS["republic of serbia"]
+
+def _update_areas(old, new, prefix=""):
+    for name, values in new.items():
+        name = prefix + name
+        assert name not in old, f"{name} already defined."
+        if len(values) > 1:
+            LOG.debug(
+                f"Area {name} has multiple values {values}. Not supported by CliMetLab."
+            )
+            continue
+        old[name] = values[0]
+
+
+data = get_data_entry("domains", "verification").data
+_update_areas(areas, data["areas"], prefix="verification.")
+
+AREAS = {k: tuple(v) for k, v in areas.items()}
+AREAS_LONG_NAMES = {"verification." + k: v for k, v in data["areas_long_names"].items()}
 
 
 def domain_to_area(name):
     if isinstance(name, (list, tuple)):
         return name
     return AREAS[name.lower()]
+
+
+def domain_to_area_long_name(name):
+    return AREAS_LONG_NAMES.get(name.lower())

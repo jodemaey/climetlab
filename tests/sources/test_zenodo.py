@@ -14,7 +14,7 @@ import pytest
 
 import climetlab as cml
 from climetlab.datasets import dataset_from_yaml
-from climetlab.testing import MISSING
+from climetlab.testing import IN_GITHUB, MISSING
 
 LOG = logging.getLogger(__name__)
 
@@ -45,6 +45,7 @@ def test_zenodo_2():
     ds = ds.to_tfdataset()
 
 
+@pytest.mark.skipif(IN_GITHUB, reason="Too long to test on GITHUB")
 @pytest.mark.external_download
 def test_zenodo_3():
     ds = cml.load_source(
@@ -57,6 +58,7 @@ def test_zenodo_3():
     ds = ds.to_pandas()
 
 
+@pytest.mark.skipif(IN_GITHUB, reason="Too long to test on GITHUB")
 @pytest.mark.external_download
 def test_zenodo_error_1():
     with pytest.raises(ValueError, match=r"No .*"):
@@ -66,6 +68,7 @@ def test_zenodo_error_1():
         )
 
 
+@pytest.mark.skipif(IN_GITHUB, reason="Too long to test on GITHUB")
 @pytest.mark.external_download
 def test_zenodo_error_2():
     with pytest.raises(ValueError, match=r"Invalid zenodo key.*"):
@@ -76,6 +79,7 @@ def test_zenodo_error_2():
         )
 
 
+@pytest.mark.skipif(True, reason="Zenodo disabled")
 @pytest.mark.external_download
 def test_zenodo_read_nc():
     def file_filter(path):
@@ -105,6 +109,7 @@ def test_zenodo_read_nc_list_content():
     assert len(content) == 555
 
 
+@pytest.mark.skipif(IN_GITHUB, reason="Too long to test on GITHUB")
 @pytest.mark.external_download
 def test_zenodo_read_nc_partial():
     ds = cml.load_source(
@@ -116,6 +121,7 @@ def test_zenodo_read_nc_partial():
     assert "t_min" in list(ds.keys())
 
 
+@pytest.mark.skipif(IN_GITHUB, reason="Too long to test on GITHUB")
 @pytest.mark.external_download
 @pytest.mark.skipif(True, reason="Test not yet implemented")
 def test_zenodo_read_nc_partial_regexpr():

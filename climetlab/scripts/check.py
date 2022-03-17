@@ -16,7 +16,7 @@ from importlib import import_module
 
 from termcolor import colored
 
-from .tools import parse_args, print_table
+from .tools import experimental, parse_args, print_table
 
 
 def version(module):
@@ -66,7 +66,10 @@ def version(module):
 
 
 class CheckCmd:
+    @parse_args()
+    @experimental
     def do_check(self, args):
+        """Experimental script to help debugging."""
         import climetlab
 
         print(
@@ -92,7 +95,7 @@ class CheckCmd:
         for name in ["eccodes", "magics"]:
             try:
                 print(
-                    f"  {name} from ecwmlibs: ok {versions[name]} ({ecmwflibs.find(name)})"
+                    f"  {name} from ecmwflibs: ok {versions[name]} ({ecmwflibs.find(name)})"
                 )
             except Exception as e:  # noqa: F841
                 print(f"  {name} from ecmwflib: Warning: ecmwflibs cannot find {name}")
@@ -281,5 +284,9 @@ class CheckCmd:
 
     def do_df(self, path):
         from climetlab.core.caching import disk_usage
+
+        if path == "-h":
+            print("Provide some information about disk usage.")
+            return
 
         print(disk_usage(path))

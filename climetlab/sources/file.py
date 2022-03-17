@@ -62,6 +62,13 @@ class FileSource(Source, os.PathLike, metaclass=FileSourceMeta):
     def ignore(self):
         return self._reader.ignore()
 
+    @classmethod
+    def merge(cls, sources):
+        from climetlab.mergers import merge_by_class
+
+        assert all(isinstance(s, FileSource) for s in sources)
+        return merge_by_class([s._reader for s in sources])
+
     @property
     def _reader(self):
         if self._reader_ is None:
@@ -113,13 +120,14 @@ class FileSource(Source, os.PathLike, metaclass=FileSourceMeta):
 
     def __repr__(self):
         cache_dir = SETTINGS.get("cache-directory")
-        path = self.path
-        if isinstance(self.path, str):
+        path = getattr(self, "path", None)
+        if isinstance(path, str):
             path = path.replace(cache_dir, "CACHE:")
+        # reader_class_name = str(self._reader.__class__.name)
         try:
             reader_class_name = str(self._reader.__class__.name)
-        except AttributeError:  # TODO: improve this
-            reader_class_name = "unknown"
+        except AttributeError as e:  # TODO: improve this
+            reader_class_name = str(e)  # "unknown"
         except:  # TODO: improve this # noqa: E722
             reader_class_name = "Unknown"
         return f"{self.__class__.__name__}({path},{reader_class_name})"
@@ -136,6 +144,9 @@ class FileSource(Source, os.PathLike, metaclass=FileSourceMeta):
 
     def to_bounding_box(self):
         return self._reader.to_bounding_box()
+
+    def statistics(self, **kwargs):
+        return self._reader.statistics(**kwargs)
 
 
 class File(FileSource):

@@ -7,9 +7,6 @@
 # nor does it submit to any jurisdiction.
 #
 
-import copy
-
-# import atexit
 import datetime
 import json
 import logging
@@ -20,44 +17,13 @@ import eccodes
 from climetlab.core import Base
 from climetlab.core.caching import auxiliary_cache_file
 from climetlab.profiling import call_counter
-
-# from climetlab.decorators import dict_args
 from climetlab.utils.bbox import BoundingBox
-
-from . import Reader
-
-# from collections import defaultdict
-
 
 LOG = logging.getLogger(__name__)
 
 
-def mix_kwargs(user, default, forced={}, logging_owner="", logging_main_key=""):
-    kwargs = copy.deepcopy(default)
-
-    for k, v in user.items():
-        if k in forced and v != forced[k]:
-            LOG.warning(
-                (
-                    f"In {logging_owner} {logging_main_key},"
-                    f"ignoring attempt to override {k}={forced[k]} with {k}={v}."
-                )
-            )
-            continue
-
-        if k in default and v != default[k]:
-            LOG.warning(
-                (
-                    f"In {logging_owner} {logging_main_key}, overriding the default value "
-                    f"({k}={default[k]}) with {k}={v} is not recommended."
-                )
-            )
-
-        kwargs[k] = v
-
-    kwargs.update(forced)
-
-    return kwargs
+def missing_is_none(x):
+    return None if x == 2147483647 else x
 
 
 # This does not belong here, should be in the C library
@@ -69,10 +35,11 @@ def _get_message_offsets(path):
         def get(count):
             buf = os.read(fd, count)
             assert len(buf) == count
-            n = 0
-            for i in buf:
-                n = n * 256 + int(i)
-            return n
+            return int.from_bytes(
+                buf,
+                byteorder="big",
+                signed=False,
+            )
 
         offset = 0
         while True:
@@ -91,7 +58,7 @@ def _get_message_offsets(path):
                 if length & 0x800000:
                     sec1len = get(3)
                     os.lseek(fd, 4, os.SEEK_CUR)
-                    flags = int(os.read(fd, 1))
+                    flags = get(1)
                     os.lseek(fd, sec1len - 8, os.SEEK_CUR)
 
                     if flags & (1 << 7):
@@ -137,9 +104,28 @@ class CodesHandle:
         try:
             if name == "values":
                 return eccodes.codes_get_values(self.handle)
-            if name in ("distinctLatitudes", "distinctLongitudes"):
-                return eccodes.codes_get_double_array(self.handle, name)
+            size = eccodes.codes_get_size(self.handle, name)
+            if size and size > 1:
+                return eccodes.codes_get_array(self.handle, name)
             return eccodes.codes_get(self.handle, name)
+        except eccodes.KeyValueNotFoundError:
+            return None
+
+    def get_long(self, name):
+        try:
+            return eccodes.codes_get_long(self.handle, name)
+        except eccodes.KeyValueNotFoundError:
+            return None
+
+    def get_string(self, name):
+        try:
+            return eccodes.codes_get_string(self.handle, name)
+        except eccodes.KeyValueNotFoundError:
+            return None
+
+    def get_double(self, name):
+        try:
+            return eccodes.codes_get_double(self.handle, name)
         except eccodes.KeyValueNotFoundError:
             return None
 
@@ -179,13 +165,17 @@ class CodesReader:
     def offset(self):
         return self.file.tell()
 
+    def read(self, offset, length):
+        self.file.seek(offset, 0)
+        return self.file.read(length)
+
 
 class GribField(Base):
-    def __init__(self, *, handle=None, reader=None, offset=None):
-        assert reader
-        self._handle = handle
+    def __init__(self, reader, offset, length):
         self._reader = reader
         self._offset = offset
+        self._length = length
+        self._handle = None
 
     def __enter__(self):
         return self
@@ -217,7 +207,10 @@ class GribField(Base):
 
     @property
     def shape(self):
-        return self.handle.get("Nj"), self.handle.get("Ni")
+        return (
+            missing_is_none(self.handle.get("Nj")),
+            missing_is_none(self.handle.get("Ni")),
+        )
 
     def plot_map(self, backend):
         backend.bounding_box(
@@ -229,7 +222,12 @@ class GribField(Base):
         backend.plot_grib(self.path, self.handle.get("offset"))
 
     @call_counter
-    def to_numpy(self):
+    def to_numpy(self, normalise=False):
+        shape = self.shape
+        if shape[0] is None or shape[1] is None:
+            return self.values
+        if normalise:
+            return self.values.reshape(self.shape)
         return self.values.reshape(self.shape)
 
     def __repr__(self):
@@ -265,7 +263,11 @@ class GribField(Base):
         date = self.handle.get("date")
         time = self.handle.get("time")
         return datetime.datetime(
-            date // 10000, date % 10000 // 100, date % 100, time // 100, time % 100
+            date // 10000,
+            date % 10000 // 100,
+            date % 100,
+            time // 100,
+            time % 100,
         )
 
     def valid_datetime(self):
@@ -297,51 +299,41 @@ class GribField(Base):
             name = "paramId"
         return self.handle.get(name)
 
+    def __getitem__(self, name):
+        """For cfgrib"""
 
-class GRIBIterator:
-    def __init__(self, path):
-        self.path = path
-        self.reader = CodesReader(path)
+        # print(name)
 
-    def __repr__(self):
-        return "GRIBIterator(%s)" % (self.path,)
+        proc = self.handle.get
+        if ":" in name:
+            try:
+                name, kind = name.split(":")
+                proc = dict(
+                    str=self.handle.get_string,
+                    int=self.handle.get_long,
+                    float=self.handle.get_double,
+                )[kind]
+            except Exception:
+                LOG.exception(f"Unsupported kind '{kind}'")
+                raise ValueError(f"Unsupported kind '{kind}'")
 
-    def __next__(self):
-        offset = self.reader.offset
-        handle = next(self.reader)
-        return GribField(handle=handle, reader=self.reader, offset=offset)
+        return proc(name)
 
-    def __iter__(self):
-        return self
-
-
-class GRIBFilter:
-    def __init__(self, reader, filter):
-        self._reader = reader
-        self._filter = dict(**filter)
-
-    def __repr__(self):
-        return "GRIBFilter(%s, %s)" % (self._reader, self._filter)
-
-    def __iter__(self):
-        return GRIBIterator(self.path)
+    def write(self, f):
+        f.write(self._reader.read(self._offset, self._length))
 
 
-# class MultiGribReaders(GriddedMultiReaders):
-#     engine = "cfgrib"
-#     backend_kwargs = {"squeeze": False}
-
-
-class GRIBIndex:
+class GribIndex:
 
     VERSION = 1
 
     def __init__(self, path):
+        assert isinstance(path, str), path
         self.path = path
         self.offsets = None
         self.lengths = None
         self.cache = auxiliary_cache_file(
-            "grib",
+            "grib-index",
             path,
             content="null",
             extension=".json",
@@ -393,166 +385,3 @@ class GRIBIndex:
             LOG.exception("Load from cache failed %s", self.cache)
 
         return False
-
-
-class GRIBReader(Reader):
-    appendable = True  # GRIB messages can be added to the same file
-
-    open_mfdataset_backend_kwargs = {"squeeze": False}
-    open_mfdataset_engine = "cfgrib"
-
-    def __init__(self, source, path):
-        super().__init__(source, path)
-        self._index = None
-        self._reader = None
-
-    def __repr__(self):
-        return "GRIBReader(%s)" % (self.path,)
-
-    def __iter__(self):
-        return GRIBIterator(self.path)
-
-    @property
-    def reader(self):
-        if self._reader is None:
-            self._reader = CodesReader(self.path)
-        return self._reader
-
-    @property
-    def index(self):
-        if self._index is None:
-            self._index = GRIBIndex(self.path)
-        return self._index
-
-    def __getitem__(self, n):
-        return GribField(
-            reader=self.reader,
-            offset=self.index.offsets[n],
-        )
-
-    @property
-    def first(self):
-        return GribField(reader=self.reader, offset=0)
-
-    def __len__(self):
-        return len(self.index.offsets)
-
-    def to_xarray(self, **kwargs):
-        return type(self).to_xarray_multi([self.path], **kwargs)
-
-    def to_tfdataset(self, **kwargs):
-        # assert "label" in kwargs
-        if "label" in kwargs:
-            return self._to_tfdataset_supervised(**kwargs)
-        else:
-            return self._to_tfdataset_unsupervised(**kwargs)
-
-    def _to_tfdataset_unsupervised(self, **kwargs):
-        def generate():
-            for s in self:
-                yield s.to_numpy()
-
-        import tensorflow as tf
-
-        # TODO check the cost of the conversion
-        # maybe default to float64
-        dtype = kwargs.get("dtype", tf.float32)
-        return tf.data.Dataset.from_generator(generate, dtype)
-
-    def _to_tfdataset_supervised(self, label, **kwargs):
-        @call_counter
-        def generate():
-            for s in self:
-                yield s.to_numpy(), s.handle.get(label)
-
-        import tensorflow as tf
-
-        # with timer("_to_tfdataset_supervised shape"):
-        shape = self.first.shape
-
-        # TODO check the cost of the conversion
-        # maybe default to float64
-        dtype = kwargs.get("dtype", tf.float32)
-        # with timer("tf.data.Dataset.from_generator"):
-        return tf.data.Dataset.from_generator(
-            generate,
-            output_signature=(
-                tf.TensorSpec(shape, dtype=dtype, name="data"),
-                tf.TensorSpec(tuple(), dtype=tf.int64, name=label),
-            ),
-        )
-
-    @classmethod
-    def to_xarray_multi(cls, paths, **kwargs):
-        import xarray as xr
-
-        xarray_open_mfdataset_kwargs = {}
-
-        user_xarray_open_mfdataset_kwargs = kwargs.get(
-            "xarray_open_mfdataset_kwargs", {}
-        )
-        for key in ["backend_kwargs"]:
-            xarray_open_mfdataset_kwargs[key] = mix_kwargs(
-                user=user_xarray_open_mfdataset_kwargs.pop(key, {}),
-                default={"squeeze": False},
-                forced={},
-                logging_owner="xarray_open_mfdataset_kwargs",
-                logging_main_key=key,
-            )
-        xarray_open_mfdataset_kwargs.update(
-            mix_kwargs(
-                user=user_xarray_open_mfdataset_kwargs,
-                default={},
-                forced={"engine": "cfgrib"},
-            )
-        )
-
-        return xr.open_mfdataset(
-            paths,
-            **xarray_open_mfdataset_kwargs,
-        )
-
-    def to_metview(self):
-        from climetlab.metview import mv_read
-
-        return mv_read(self.path)
-
-    def plot_map(self, backend):
-        return self.first.plot_map(backend)
-
-    def plot_graph(self, backend):
-        import numpy as np
-
-        what = backend._options("what", "global_average")
-        what = dict(
-            global_average=np.mean,
-        )[what]
-
-        # initialize list of lists
-        data = [[s.valid_datetime(), what(s.to_numpy())] for s in self]
-        import pandas as pd
-
-        df = pd.DataFrame(data, columns=["date", "param"])
-
-        backend.plot_graph_add_timeserie(df)
-
-    # Used by normalisers
-    def to_datetime(self):
-        times = self.to_datetime_list()
-        assert len(times) == 1
-        return times[0]
-
-    def to_datetime_list(self):
-        # TODO: check if that can be done faster
-        result = set()
-        for s in self:
-            result.add(s.valid_datetime())
-        return sorted(result)
-
-    def to_bounding_box(self):
-        return BoundingBox.multi_merge([s.to_bounding_box() for s in self])
-
-
-def reader(source, path, magic=None, deeper_check=False):
-    if magic is None or magic[:4] == b"GRIB":
-        return GRIBReader(source, path)

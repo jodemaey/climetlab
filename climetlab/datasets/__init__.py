@@ -16,7 +16,7 @@ import yaml
 import climetlab
 from climetlab.core import Base
 from climetlab.core.metadata import annotate
-from climetlab.core.plugins import find_plugin, register
+from climetlab.core.plugins import find_plugin
 from climetlab.core.settings import SETTINGS
 from climetlab.utils import download_and_cache
 from climetlab.utils.html import table
@@ -210,10 +210,6 @@ class DatasetLoader:
         return None
 
 
-def register_dataset(module):
-    register("dataset", module)
-
-
 class DatasetMaker:
     def lookup(self, name):
 
@@ -226,6 +222,8 @@ class DatasetMaker:
         return self.lookup(name, *args, **kwargs)
 
     def __getattr__(self, name):
+        if name.startswith("_"):
+            raise AttributeError(name)
         return self(name.replace("_", "-"))
 
 

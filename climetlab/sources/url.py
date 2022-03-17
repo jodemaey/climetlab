@@ -10,11 +10,11 @@
 
 import logging
 
+from multiurl import Downloader
+
 from climetlab.core.settings import SETTINGS
 from climetlab.core.statistics import record_statistics
-from climetlab.download import get_downloader
 from climetlab.utils import tqdm
-from climetlab.utils.mirror import DEFAULT_MIRROR
 
 from .file import FileSource
 
@@ -47,7 +47,6 @@ class Url(FileSource):
         range_method="auto",
         http_headers=None,
         update_if_out_of_date=False,
-        mirror=DEFAULT_MIRROR,
         fake_headers=None,  # When HEAD is not allowed but you know the size
     ):
 
@@ -57,14 +56,12 @@ class Url(FileSource):
         extension = None
 
         self.url = url
+        self.parts = parts
         LOG.debug("URL %s", url)
 
         self.update_if_out_of_date = update_if_out_of_date
 
-        if mirror:
-            url = mirror(url)
-
-        self.downloader = get_downloader(
+        self.downloader = Downloader(
             url,
             chunk_size=chunk_size,
             timeout=SETTINGS.get("url-download-timeout"),
@@ -75,6 +72,9 @@ class Url(FileSource):
             fake_headers=fake_headers,
             statistics_gatherer=record_statistics,
             progress_bar=progress_bar,
+            resume_transfers=True,
+            override_target_file=False,
+            download_file_extension=".download",
         )
 
         if extension and extension[0] != ".":
@@ -90,20 +90,22 @@ class Url(FileSource):
         if force is None:
             force = self.out_of_date
 
-        def download(target, url):
+        def download(target, _):
             self.downloader.download(target)
             return self.downloader.cache_data()
 
         self.path = self.cache_file(
             download,
-            url,
+            dict(url=url, parts=parts),
             extension=extension,
             force=force,
-            hash_extra=parts,
         )
 
+    def connect_to_mirror(self, mirror):
+        return mirror.connection_for_url(self, self.url, self.parts)
+
     def out_of_date(self, url, path, cache_data):
-        if SETTINGS.get("check-out-of-date-urls"):
+        if SETTINGS.get("check-out-of-date-urls") is False:
             return False
 
         if self.downloader.out_of_date(path, cache_data):
